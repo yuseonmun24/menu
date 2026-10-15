@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fc">
+  <title>오늘 뭐 하지? — 랜덤 룰렛</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20243a;
+      --muted: #777d92;
+      --purple: #6c56e8;
+      --purple-dark: #5640d0;
+      --line: #e9eaf2;
+      --surface: #ffffff;
+      --background: #f7f8fc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 12% 0%, rgba(221, 216, 255, .45), transparent 34rem),
+        var(--background);
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .app {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 38px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -.04em;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 11px;
+      color: white;
+      background: linear-gradient(145deg, #8877ff, #624be2);
+      box-shadow: 0 5px 12px #6c56e84a;
+      font-size: 18px;
+    }
+
+    .top-note {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .intro { margin-bottom: 25px; text-align: center; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      color: var(--purple);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(27px, 4vw, 38px);
+      font-weight: 850;
+      letter-spacing: -.065em;
+    }
+
+    .intro p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.32fr) minmax(300px, .78fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .card {
+      border: 1px solid rgba(232, 233, 242, .85);
+      border-radius: 22px;
+      background: var(--surface);
+      box-shadow: 0 12px 36px rgba(34, 38, 72, .055);
+    }
+
+    .wheel-card {
+      display: flex;
+      min-height: 540px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 27px 28px 25px;
+      overflow: hidden;
+    }
+
+    .wheel-heading {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .wheel-heading h2, .options-heading h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -.04em;
+    }
+
+    .item-count {
+      padding: 6px 10px;
+      border-radius: 20px;
+      color: #6954db;
+      background: #f0edff;
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      width: min(100%, 430px);
+      aspect-ratio: 1;
+      margin: 0 auto 10px;
+    }
+
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .spin-button {
+      width: min(100%, 310px);
+      min-height: 54px;
+      border: 0;
+      border-radius: 15px;
+      color: #fff;
+      background: linear-gradient(105deg, #806df6, #6049df);
+      box-shadow: 0 9px 18px rgba(100, 76, 226, .25);
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    }
+
+    .spin-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 22px rgba(100, 76, 226, .32);
+    }
+    .spin-button:active:not(:disabled) { transform: translateY(0); }
+    .spin-button:disabled { cursor: wait; opacity: .72; }
+
+    .hint {
+      margin: 11px 0 0;
+      color: #999daf;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .options-card { padding: 25px 23px 20px; }
+    .options-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+    .options-heading h2 { font-size: 17px; }
+    .options-heading span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .options-description {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 13px;
+    }
+
+    .add-form input {
+      width: 0;
+      min-width: 0;
+      flex: 1;
+      height: 43px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+      color: var(--ink);
+      background: #fbfbfd;
+      font-size: 13px;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .add-form input::placeholder { color: #a5a8b8; }
+    .add-form input:focus {
+      border-color: #a99cff;
+      box-shadow: 0 0 0 3px #806df61a;
+    }
+
+    .add-button {
+      width: 43px;
+      height: 43px;
+      flex: 0 0 43px;
+      border: 0;
+      border-radius: 12px;
+      color: white;
+      background: #6d57e8;
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      transition: background .18s, transform .18s;
+    }
+    .add-button:hover { transform: translateY(-1px); background: #5942d5; }
+
+    .option-list {
+      display: flex;
+      max-height: 283px;
+      flex-direction: column;
+      gap: 7px;
+      margin: 0;
+      padding: 0 3px 0 0;
+      overflow-y: auto;
+      list-style: none;
+      scrollbar-color: #d9d6ed transparent;
+      scrollbar-width: thin;
+    }
+
+    .option-item {
+      display: flex;
+      min-height: 43px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 9px 0 12px;
+      border: 1px solid #f0f0f5;
+      border-radius: 12px;
+      background: #fff;
+      animation: appear .18s ease-out;
+    }
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .option-dot {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 9px;
+      border-radius: 50%;
+    }
+    .option-name {
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      color: #34384c;
+      font-size: 13px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .remove-button {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      place-items: center;
+      border: 0;
+      border-radius: 8px;
+      color: #a3a6b5;
+      background: transparent;
+      cursor: pointer;
+      font-size: 17px;
+      transition: color .15s, background .15s;
+    }
+    .remove-button:hover { color: #df5367; background: #fff0f2; }
+
+    .empty-list {
+      padding: 25px 12px;
+      border: 1px dashed #dedfea;
+      border-radius: 12px;
+      color: #999daf;
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .result {
+      display: none;
+      margin-top: 17px;
+      padding: 15px 16px;
+      border: 1px solid #e8e2ff;
+      border-radius: 15px;
+      background: linear-gradient(120deg, #f7f4ff, #fff9fd);
+      text-align: center;
+      animation: appear .25s ease-out;
+    }
+    .result.visible { display: block; }
+    .result-label {
+      margin-bottom: 3px;
+      color: #8b7bbd;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .13em;
+    }
+    .result-name {
+      color: #5c46d7;
+      font-size: clamp(20px, 4vw, 26px);
+      font-weight: 850;
+      letter-spacing: -.045em;
+      overflow-wrap: anywhere;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: #a0a3b1;
+      font-size: 11px;
+      text-align: center;
+    }
+    button:focus-visible {
+      outline: 3px solid #bdb4ff;
+      outline-offset: 3px;
+    }
+
+    @media (max-width: 760px) {
+      .app { width: min(560px, calc(100% - 28px)); padding-top: 22px; }
+      .workspace { grid-template-columns: 1fr; gap: 14px; }
+      .wheel-card { min-height: 0; padding: 20px 17px 21px; }
+      .canvas-wrap { width: min(100%, 390px); }
+      .options-card { padding: 21px 18px 18px; }
+      .option-list { max-height: 245px; }
+      .topbar { margin-bottom: 23px; }
+    }
+
+    @media (max-width: 420px) {
+      .top-note { font-size: 10px; }
+      .intro { margin-bottom: 19px; }
+      .intro p { font-size: 12px; }
+      .canvas-wrap { width: min(100%, 340px); }
+      .wheel-heading h2 { font-size: 14px; }
+      .spin-button { min-height: 50px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span>오늘의 결정</div>
+      <div class="top-note">고민은 룰렛에게 맡겨봐요</div>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div class="eyebrow"><span aria-hidden="true">✧</span> EASY DECISION, HAPPY DAY</div>
+      <h1 id="page-title">오늘 뭐 하지?</h1>
+      <p>고민되는 선택지를 적고 룰렛을 돌려보세요.<br>오늘의 답을 바로 찾아드릴게요!</p>
+    </section>
+
+    <div class="workspace">
+      <section class="card wheel-card" aria-labelledby="wheel-title">
+        <div class="wheel-heading">
+          <h2 id="wheel-title">행운의 룰렛</h2>
+          <span class="item-count" id="wheel-count">0개 후보</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="wheel" role="img" aria-label="후보를 보여주는 룰렛 원판"></canvas>
+        </div>
+        <button class="spin-button" id="spin-button" type="button">✦ &nbsp; 룰렛 돌리기</button>
+        <p class="hint" id="wheel-hint">후보를 추가하면 룰렛을 돌릴 수 있어요</p>
+      </section>
+
+      <aside class="card options-card" aria-labelledby="options-title">
+        <div class="options-heading">
+          <h2 id="options-title">선택지</h2>
+          <span id="list-count" aria-live="polite">0개</span>
+        </div>
+        <p class="options-description">메뉴, 하고 싶은 일, 벌칙까지<br>고민되는 선택지를 자유롭게 추가해 보세요.</p>
+        <form class="add-form" id="add-form">
+          <input id="option-input" type="text" maxlength="32" placeholder="예: 돈까스" autocomplete="off" aria-label="추가할 선택지">
+          <button class="add-button" type="submit" aria-label="선택지 추가">+</button>
+        </form>
+        <ul class="option-list" id="option-list" aria-label="선택지 목록"></ul>
+        <div class="result" id="result" role="status" aria-live="polite">
+          <div class="result-label">오늘의 선택</div>
+          <div class="result-name" id="result-name"></div>
+        </div>
+      </aside>
+    </div>
+    <footer class="footer">선택지를 더하거나 빼서 나만의 룰렛을 만들어보세요</footer>
+  </main>
+
+  <script>
+    (() => {
+      const colors = ["#8371f5", "#ff9b79", "#54c4ad", "#f5c454", "#6ba9ee", "#ed7da1", "#68c9d3", "#a58ae8", "#f18c68", "#70bd84", "#edbb69", "#7593e8"];
+      let options = ["김치찌개", "돈까스", "마라탕", "초밥", "파스타", "햄버거"];
+      let rotation = 0;
+      let spinning = false;
+
+      const canvas = document.getElementById("wheel");
+      const ctx = canvas.getContext("2d");
+      const list = document.getElementById("option-list");
+      const input = document.getElementById("option-input");
+      const spinButton = document.getElementById("spin-button");
+      const result = document.getElementById("result");
+      const resultName = document.getElementById("result-name");
+      const countLabels = [document.getElementById("wheel-count"), document.getElementById("list-count")];
+      const hint = document.getElementById("wheel-hint");
+
+      function renderList() {
+        list.replaceChildren();
+        options.forEach((option, index) => {
+          const item = document.createElement("li");
+          item.className = "option-item";
+
+          const dot = document.createElement("span");
+          dot.className = "option-dot";
+          dot.style.backgroundColor = colors[index % colors.length];
+          dot.setAttribute("aria-hidden", "true");
+
+          const name = document.createElement("span");
+          name.className = "option-name";
+          name.textContent = option;
+
+          const remove = document.createElement("button");
+          remove.className = "remove-button";
+          remove.type = "button";
+          remove.textContent = "×";
+          remove.disabled = spinning;
+          remove.setAttribute("aria-label", `${option} 삭제`);
+          remove.addEventListener("click", () => {
+            options.splice(index, 1);
+            result.classList.remove("visible");
+            render();
+          });
+
+          item.append(dot, name, remove);
+          list.append(item);
+        });
+
+        if (options.length === 0) {
+          const empty = document.createElement("li");
+          empty.className = "empty-list";
+          empty.textContent = "아직 선택지가 없어요. 위에서 첫 번째 후보를 추가해 보세요!";
+          list.append(empty);
+        }
+      }
+
+      function render() {
+        renderList();
+        countLabels[0].textContent = `${options.length}개 후보`;
+        countLabels[1].textContent = `${options.length}개`;
+        spinButton.disabled = spinning || options.length === 0;
+        input.disabled = spinning;
+        document.querySelector(".add-button").disabled = spinning;
+        hint.textContent = options.length ? "룰렛을 돌려 오늘의 선택을 확인해 보세요" : "후보를 추가하면 룰렛을 돌릴 수 있어요";
+        drawWheel();
+      }
+
+      function drawWheel() {
+        const bounds = canvas.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const pixelWidth = Math.round(bounds.width * dpr);
+        const pixelHeight = Math.round(bounds.height * dpr);
+        if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+          canvas.width = pixelWidth;
+          canvas.height = pixelHeight;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const size = bounds.width;
+        const center = size / 2;
+        const radius = size * .445;
+        ctx.clearRect(0, 0, size, size);
+
+        ctx.beginPath();
+        ctx.arc(center, center, radius + 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#f0eefb";
+        ctx.fill();
+
+        if (!options.length) {
+          ctx.beginPath();
+          ctx.arc(center, center, radius, 0, Math.PI * 2);
+          ctx.fillStyle = "#f2f1f8";
+          ctx.fill();
+          ctx.fillStyle = "#989bad";
+          ctx.font = `600 ${Math.max(12, size * .045)}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("선택지를 추가해 주세요", center, center);
+          drawPointer(center, radius, size);
+          return;
+        }
+
+        const slice = Math.PI * 2 / options.length;
+        options.forEach((option, index) => {
+          const start = rotation + index * slice - Math.PI / 2;
+          const end = start + slice;
+          ctx.beginPath();
+          ctx.moveTo(center, center);
+          ctx.arc(center, center, radius, start, end);
+          ctx.closePath();
+          ctx.fillStyle = colors[index % colors.length];
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,.88)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.save();
+          ctx.translate(center, center);
+          ctx.rotate(start + slice / 2);
+          ctx.textAlign = "right";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#fff";
+          ctx.shadowColor = "rgba(37,31,81,.18)";
+          ctx.shadowBlur = 2;
+          const fontSize = Math.max(10, Math.min(15, size * .038));
+          ctx.font = `700 ${fontSize}px sans-serif`;
+          const maxWidth = radius * .68;
+          let label = option;
+          while (ctx.measureText(label).width > maxWidth && label.length > 1) label = `${label.slice(0, -1)}…`;
+          ctx.fillText(label, radius * .79, 0);
+          ctx.restore();
+        });
+
+        ctx.beginPath();
+        ctx.arc(center, center, size * .062, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.shadowColor = "rgba(42,35,87,.2)";
+        ctx.shadowBlur = 9;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(center, center, size * .036, 0, Math.PI * 2);
+        ctx.fillStyle = "#6c56e8";
+        ctx.fill();
+        drawPointer(center, radius, size);
+      }
+
+      function drawPointer(center, radius, size) {
+        ctx.save();
+        ctx.translate(center, center - radius + 1);
+        ctx.beginPath();
+        ctx.moveTo(-size * .043, -size * .023);
+        ctx.lineTo(size * .043, -size * .023);
+        ctx.lineTo(0, size * .058);
+        ctx.closePath();
+        ctx.fillStyle = "#fff";
+        ctx.shadowColor = "rgba(40,34,83,.28)";
+        ctx.shadowBlur = 7;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      document.getElementById("add-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const value = input.value.trim();
+        if (!value || spinning) return;
+        options.push(value);
+        input.value = "";
+        result.classList.remove("visible");
+        render();
+        input.focus();
+      });
+
+      spinButton.addEventListener("click", () => {
+        if (spinning || options.length === 0) return;
+        spinning = true;
+        result.classList.remove("visible");
+        render();
+
+        const selectedIndex = Math.floor(Math.random() * options.length);
+        const slice = Math.PI * 2 / options.length;
+        const desiredRotation = -(selectedIndex + .5) * slice;
+        const extraTurn = ((desiredRotation - rotation) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        const startRotation = rotation;
+        const endRotation = rotation + Math.PI * 2 * (5 + Math.floor(Math.random() * 3)) + extraTurn;
+        const startTime = performance.now();
+        const duration = 4600;
+
+        function animate(now) {
+          const progress = Math.min(1, (now - startTime) / duration);
+          const eased = 1 - Math.pow(1 - progress, 4);
+          rotation = startRotation + (endRotation - startRotation) * eased;
+          drawWheel();
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            rotation = endRotation % (Math.PI * 2);
+            spinning = false;
+            resultName.textContent = options[selectedIndex];
+            result.classList.add("visible");
+            render();
+          }
+        }
+        requestAnimationFrame(animate);
+      });
+
+      window.addEventListener("resize", drawWheel);
+      render();
+    })();
+  </script>
+</body>
+</html>
