@@ -138,15 +138,6 @@
       letter-spacing: -.04em;
     }
 
-    .item-count {
-      padding: 6px 10px;
-      border-radius: 20px;
-      color: #6954db;
-      background: #f0edff;
-      font-size: 11px;
-      font-weight: 750;
-    }
-
     .canvas-wrap {
       position: relative;
       width: min(100%, 430px);
@@ -204,6 +195,62 @@
       color: var(--muted);
       font-size: 12px;
       line-height: 1.55;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .preset-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .preset-select {
+      min-width: 0;
+      height: 42px;
+      flex: 1;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      outline: none;
+      color: #555a70;
+      background: #fbfbfd;
+      font-size: 12px;
+    }
+    .preset-select:focus {
+      border-color: #a99cff;
+      box-shadow: 0 0 0 3px #806df61a;
+    }
+
+    .preset-button {
+      min-width: 66px;
+      padding: 0 13px;
+      border: 1px solid #e5e0ff;
+      border-radius: 11px;
+      color: #6550d8;
+      background: #f5f2ff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+      transition: background .18s, transform .18s;
+    }
+    .preset-button:hover:not(:disabled) { transform: translateY(-1px); background: #ece8ff; }
+    .preset-button:disabled { cursor: wait; opacity: .6; }
+
+    .preset-note {
+      margin: -5px 0 13px;
+      color: #999daf;
+      font-size: 10px;
     }
 
     .add-form {
@@ -418,7 +465,6 @@
       <section class="card wheel-card" aria-labelledby="wheel-title">
         <div class="wheel-heading">
           <h2 id="wheel-title">행운의 룰렛</h2>
-          <span class="item-count" id="wheel-count">0개 후보</span>
         </div>
         <div class="canvas-wrap">
           <canvas id="wheel" role="img" aria-label="후보를 보여주는 룰렛 원판"></canvas>
@@ -430,9 +476,21 @@
       <aside class="card options-card" aria-labelledby="options-title">
         <div class="options-heading">
           <h2 id="options-title">선택지</h2>
-          <span id="list-count" aria-live="polite">0개</span>
         </div>
         <p class="options-description">메뉴, 하고 싶은 일, 벌칙까지<br>고민되는 선택지를 자유롭게 추가해 보세요.</p>
+        <form class="preset-form" id="preset-form">
+          <label class="sr-only" for="preset-select">선택지 프리셋</label>
+          <select class="preset-select" id="preset-select">
+            <option value="" selected disabled>프리셋 선택</option>
+            <option value="lunch">점심 메뉴</option>
+            <option value="dinner">저녁 메뉴</option>
+            <option value="snack">간식</option>
+            <option value="activity">주말 활동</option>
+            <option value="penalty">가벼운 벌칙</option>
+          </select>
+          <button class="preset-button" id="preset-apply" type="submit">적용</button>
+        </form>
+        <p class="preset-note">프리셋을 적용하면 현재 선택지가 교체됩니다.</p>
         <form class="add-form" id="add-form">
           <input id="option-input" type="text" maxlength="32" placeholder="예: 돈까스" autocomplete="off" aria-label="추가할 선택지">
           <button class="add-button" type="submit" aria-label="선택지 추가">+</button>
@@ -452,7 +510,14 @@
   <script>
     (() => {
       const colors = ["#8371f5", "#ff9b79", "#54c4ad", "#f5c454", "#6ba9ee", "#ed7da1", "#68c9d3", "#a58ae8", "#f18c68", "#70bd84", "#edbb69", "#7593e8"];
-      let options = ["김치찌개", "돈까스", "마라탕", "초밥", "파스타", "햄버거"];
+    const presets = {
+      lunch: ["김치찌개", "돈까스", "마라탕", "초밥", "파스타", "햄버거"],
+      dinner: ["치킨", "피자", "삼겹살", "부대찌개", "쌀국수", "회"],
+      snack: ["떡볶이", "붕어빵", "아이스크림", "와플", "핫도그", "과일"],
+      activity: ["산책하기", "영화 보기", "카페 가기", "보드게임", "자전거 타기", "집에서 쉬기"],
+      penalty: ["애교 부리기", "노래 한 소절 부르기", "웃긴 표정 짓기", "칭찬 한마디 하기", "물 한 컵 마시기", "다음 게임 응원하기"]
+    };
+    let options = ["김치찌개", "돈까스", "마라탕", "초밥", "파스타", "햄버거"];
       let rotation = 0;
       let spinning = false;
 
@@ -460,10 +525,11 @@
       const ctx = canvas.getContext("2d");
       const list = document.getElementById("option-list");
       const input = document.getElementById("option-input");
+      const presetSelect = document.getElementById("preset-select");
+      const presetApplyButton = document.getElementById("preset-apply");
       const spinButton = document.getElementById("spin-button");
       const resultDialog = document.getElementById("result-dialog");
       const resultName = document.getElementById("result-name");
-      const countLabels = [document.getElementById("wheel-count"), document.getElementById("list-count")];
       const hint = document.getElementById("wheel-hint");
 
       function renderList() {
@@ -506,12 +572,17 @@
 
       function render() {
         renderList();
-        countLabels[0].textContent = `${options.length}개 후보`;
-        countLabels[1].textContent = `${options.length}개`;
         spinButton.disabled = spinning || options.length === 0;
+        spinButton.textContent = spinning ? "✦   룰렛이 돌아가고 있어요..." : "✦   룰렛 돌리기";
         input.disabled = spinning;
         document.querySelector(".add-button").disabled = spinning;
-        hint.textContent = options.length ? "룰렛을 돌려 결과를 확인해 보세요" : "후보를 추가하면 룰렛을 돌릴 수 있어요";
+        presetSelect.disabled = spinning;
+        presetApplyButton.disabled = spinning;
+        hint.textContent = spinning
+          ? "룰렛이 멈출 때까지 잠시 기다려 주세요"
+          : options.length
+            ? "룰렛을 돌려 결과를 확인해 보세요"
+            : "후보를 추가하면 룰렛을 돌릴 수 있어요";
         drawWheel();
       }
 
@@ -620,6 +691,16 @@
         input.focus();
       });
 
+      document.getElementById("preset-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const selectedPreset = presets[presetSelect.value];
+        if (!selectedPreset || spinning) return;
+        options = [...selectedPreset];
+        rotation = 0;
+        presetSelect.value = "";
+        render();
+      });
+
       spinButton.addEventListener("click", () => {
         if (spinning || options.length === 0) return;
         spinning = true;
@@ -631,11 +712,16 @@
         const extraTurn = ((desiredRotation - rotation) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
         const startRotation = rotation;
         const endRotation = rotation + Math.PI * 2 * (5 + Math.floor(Math.random() * 3)) + extraTurn;
-        const startTime = performance.now();
-        const duration = 4600;
+        const duration = 5000;
+        let elapsed = 0;
+        let previousFrameTime = null;
 
         function animate(now) {
-          const progress = Math.min(1, (now - startTime) / duration);
+          if (previousFrameTime !== null) {
+            elapsed += Math.min(now - previousFrameTime, 50);
+          }
+          previousFrameTime = now;
+          const progress = Math.min(1, elapsed / duration);
           const eased = 1 - Math.pow(1 - progress, 4);
           rotation = startRotation + (endRotation - startRotation) * eased;
           drawWheel();
