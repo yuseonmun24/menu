@@ -318,30 +318,51 @@
       text-align: center;
     }
 
-    .result {
-      display: none;
-      margin-top: 17px;
-      padding: 15px 16px;
+    .result-dialog {
+      width: min(390px, calc(100% - 32px));
+      padding: 33px 28px 25px;
       border: 1px solid #e8e2ff;
-      border-radius: 15px;
-      background: linear-gradient(120deg, #f7f4ff, #fff9fd);
+      border-radius: 24px;
+      color: var(--ink);
+      background: linear-gradient(145deg, #fff, #f7f4ff);
+      box-shadow: 0 24px 80px rgba(31, 25, 72, .25);
       text-align: center;
-      animation: appear .25s ease-out;
     }
-    .result.visible { display: block; }
+    .result-dialog[open] { animation: appear .25s ease-out; }
+    .result-dialog::backdrop {
+      background: rgba(30, 27, 49, .48);
+      backdrop-filter: blur(4px);
+    }
     .result-label {
-      margin-bottom: 3px;
+      margin-bottom: 10px;
       color: #8b7bbd;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 800;
       letter-spacing: .13em;
     }
     .result-name {
+      margin-bottom: 25px;
       color: #5c46d7;
-      font-size: clamp(20px, 4vw, 26px);
+      font-size: clamp(28px, 8vw, 38px);
       font-weight: 850;
       letter-spacing: -.045em;
       overflow-wrap: anywhere;
+    }
+    .result-sparkle {
+      margin-bottom: 12px;
+      color: #7059e8;
+      font-size: 30px;
+    }
+    .close-result {
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-radius: 13px;
+      color: #fff;
+      background: linear-gradient(105deg, #806df6, #6049df);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 800;
     }
 
     .footer {
@@ -372,6 +393,7 @@
       .canvas-wrap { width: min(100%, 340px); }
       .wheel-heading h2 { font-size: 14px; }
       .spin-button { min-height: 50px; }
+      .result-dialog { padding: 29px 22px 21px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -416,14 +438,16 @@
           <button class="add-button" type="submit" aria-label="선택지 추가">+</button>
         </form>
         <ul class="option-list" id="option-list" aria-label="선택지 목록"></ul>
-        <div class="result" id="result" role="status" aria-live="polite">
-          <div class="result-label">오늘의 선택</div>
-          <div class="result-name" id="result-name"></div>
-        </div>
       </aside>
     </div>
     <footer class="footer">선택지를 더하거나 빼서 나만의 룰렛을 만들어보세요</footer>
   </main>
+  <dialog class="result-dialog" id="result-dialog" aria-labelledby="result-label">
+    <div class="result-sparkle" aria-hidden="true">✦</div>
+    <div class="result-label" id="result-label">오늘의 선택</div>
+    <div class="result-name" id="result-name" aria-live="polite"></div>
+    <button class="close-result" id="close-result" type="button">확인</button>
+  </dialog>
 
   <script>
     (() => {
@@ -437,7 +461,7 @@
       const list = document.getElementById("option-list");
       const input = document.getElementById("option-input");
       const spinButton = document.getElementById("spin-button");
-      const result = document.getElementById("result");
+      const resultDialog = document.getElementById("result-dialog");
       const resultName = document.getElementById("result-name");
       const countLabels = [document.getElementById("wheel-count"), document.getElementById("list-count")];
       const hint = document.getElementById("wheel-hint");
@@ -465,7 +489,6 @@
           remove.setAttribute("aria-label", `${option} 삭제`);
           remove.addEventListener("click", () => {
             options.splice(index, 1);
-            result.classList.remove("visible");
             render();
           });
 
@@ -488,7 +511,7 @@
         spinButton.disabled = spinning || options.length === 0;
         input.disabled = spinning;
         document.querySelector(".add-button").disabled = spinning;
-        hint.textContent = options.length ? "룰렛을 돌려 오늘의 선택을 확인해 보세요" : "후보를 추가하면 룰렛을 돌릴 수 있어요";
+        hint.textContent = options.length ? "룰렛을 돌려 결과를 확인해 보세요" : "후보를 추가하면 룰렛을 돌릴 수 있어요";
         drawWheel();
       }
 
@@ -593,7 +616,6 @@
         if (!value || spinning) return;
         options.push(value);
         input.value = "";
-        result.classList.remove("visible");
         render();
         input.focus();
       });
@@ -601,7 +623,6 @@
       spinButton.addEventListener("click", () => {
         if (spinning || options.length === 0) return;
         spinning = true;
-        result.classList.remove("visible");
         render();
 
         const selectedIndex = Math.floor(Math.random() * options.length);
@@ -624,13 +645,14 @@
             rotation = endRotation % (Math.PI * 2);
             spinning = false;
             resultName.textContent = options[selectedIndex];
-            result.classList.add("visible");
+            resultDialog.showModal();
             render();
           }
         }
         requestAnimationFrame(animate);
       });
 
+      document.getElementById("close-result").addEventListener("click", () => resultDialog.close());
       window.addEventListener("resize", drawWheel);
       render();
     })();
